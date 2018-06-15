@@ -1,0 +1,36 @@
+#!/bin/bash
+#XOR_HELL USAGE: ./XOR_HELL {File} {Password}
+#Outputs to {File}.xor
+
+$(xxd -p -c32 $1 > ./hex_tmp)
+PASSWORD="$2"
+SHA2=$(echo -n $2 | sha256sum | cut -d" " -f1)
+KEY=$(echo -n $PASSWORD$SHA2 | sha256sum | cut -d" " -f1)
+OPS=1
+POS=2
+CURRENT_LINE=1
+EOF_LINE=$(wc -l < ./hex_tmp)
+EOF_BYTE=$(tail -n1 ./hex_tmp | wc -c)
+b=""
+ar=()
+        while read -r b ; do
+        b=$b
+	ENC=$(while [[ $OPS -lt 33 ]]; do
+	if [[ $CURRENT_LINE == $EOF_LINE ]] && [[ $EOF_BYTE -lt $POS ]]; then
+		break
+	fi
+		K=$(echo "$KEY" | head -c$POS | tail -c2)
+		B=$(echo $b | head -c$POS | tail -c2)
+                X=$(printf "%02X" $((16#$B^16#$K)))
+		let OPS=OPS+1
+		let POS=POS+2
+		echo "$X"
+		done)
+	ar+=$(echo $(echo $ENC | sed 's/ //g') >> ./xor_hex)
+	KEY=$(echo -n $PASSWORD$KEY | sha256sum | cut -d" " -f1)
+	let CURRENT_LINE=CURRENT_LINE+1
+        done < ./hex_tmp
+
+$(xxd -r -p -c32 ./xor_hex > ./$1.xor)
+$(rm ./hex_tmp && rm ./xor_hex)
+
