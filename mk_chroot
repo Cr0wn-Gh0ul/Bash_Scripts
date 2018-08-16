@@ -1,0 +1,189 @@
+#!/bin/bash
+##########################################
+# mk_chroot				 #
+# 		 ~Created by Cr0wn_Gh0ul #
+#					 #
+#	This script is used to automate  #
+# the process of creating a chroot jail  #
+# through a interactive scripts.         #
+##########################################
+
+#################
+# Create Chroot #
+################
+
+## get chroot destination directory
+echo -n "Enter directory to install chroot: "
+read DIR_PATH
+
+echo -n "Enter name for chroot: "
+read NAME
+
+CHROOT_PATH=$DIR_PATH$NAME
+
+## test chroot path
+if [ -d "$CHROOT_PATH" ]; then
+	echo -n "$CHROOT_PATH exists, Would you like to overwrite?[y/N] 
+***This will permanently delete the directory*** "
+	echo ""
+	read -s -n 1 ans
+		if [[ "$ans" == "Y" ]] || [[ "$ans" == "y" ]]; then
+			echo ""
+			echo -n "Overwriting $CHROOT_PATH"
+			rm -r $CHROOT_PATH
+		else
+			exit 1
+		fi
+fi
+
+## make chroot dir and add basic /dev
+echo ""
+echo -n "Creating chroot..."
+CHROOT_DIR=$CHROOT_PATH
+CUR_DIR=$PWD
+mkdir -p $CHROOT_DIR
+mkdir -p $CHROOT_DIR/dev/		
+CUR_DIR=$PWD;cd $CHROOT_DIR/dev;mknod -m 666 null c 1 3;mknod -m 666 tty c 5 0;mknod -m 666 zero c 1 5;mknod -m 666 random c 1 8;cd $CUR_DIR;
+chown root:root $CHROOT_DIR
+chmod 0755 $CHROOT_DIR
+echo "[complete]"
+
+####################
+# Install Programs #
+####################
+## ask what to install
+echo ""
+echo -n "Do you want to install programs to the chroot? [Y/n] 
+*(ex: bash, ls, vi) "
+echo ""
+read -s -n 1 YNO
+	if [[ "$YNO" == "Y" ]] || [[ "$YNO" == "y" ]] || [[ "$YNO" == "" ]]; then 
+## begin loop
+		while true; do
+			echo ""
+			echo -n "Enter program to add to chroot /bin: "
+			read PROG
+## test if program exist
+			TEST=$(command -v $PROG)
+			if [[ "$TEST" != "" ]]; then
+## input vars
+				PROGRAM=$PROG
+				mkdir -p $CHROOT_DIR/bin 2>/dev/null
+				BIN_DIR=$CHROOT_DIR/bin
+				CHROOT_BIN=$(echo $BIN_DIR)
+				LIB_DIR=$(ldd $(which bash) | cut -d" " -f3); for l in $LIB_DIR; do mkdir -p $CHROOT_DIR/$(dirname $l | cut -d"/" -f3) 2>/dev/null; done
+				mkdir -p $CHROOT_DIR/usr 2>/dev/null
+## locate programs and libraries
+				LOCATE_PROG=$(which $PROGRAM)
+				LOCATE_LIB=$(ldd $LOCATE_PROG | cut -d" " -f3 | sed 's/ //g')
+
+## copy programs and libraries to chroot
+				$(cp $(echo $LOCATE_PROG) $BIN_DIR)
+				echo -n "$LOCATE_PROG --> $CHROOT_BIN"
+				for l in $LOCATE_LIB; do $(cp $l $CHROOT_DIR/$(dirname $l | cut -d"/" -f3)); done
+				cp -r $CHROOT_DIR/lib $CHROOT_DIR/usr/ && cp -r $CHROOT_DIR/lib64 $CHROOT_DIR/usr/ && cp -r $CHROOT_DIR/bin $CHROOT_DIR/usr/
+				echo ""
+				for l in $LOCATE_LIB; do echo -en "$l --> $CHROOT_DIR/$(dirname $l | cut -d"/" -f3)\n"; done
+## end loop or continue
+			else
+				echo ""
+				echo -n "ERROR: $PROG does not exist"
+			fi
+				echo ""
+				echo -n "Would you like to install another program? [Y/n] "
+				read -s -n 1 repeat
+					if [[ "$repeat" == "Y" ]] || [[ "$repeat" == "y" ]] || [[ "$repeat" == "" ]]; then
+						continue
+					else
+						break
+		
+					fi
+		continue
+		done
+	fi
+
+################
+# Manage Users #
+################
+
+## ask to add user
+echo ""
+echo -n "Would you like to create/add existing user? [Y/n] "
+read -s -n1 add
+	if [[ "$add" == "Y" ]] || [[ "$add" == "y" ]] || [[ "$add" == "" ]]; then
+		mkdir $CHROOT_DIR/etc/
+## start loop
+		while true; do
+## create / add user			
+			echo ""
+			echo -n "Enter username: "
+			read username
+			EXISTING=$(cat /etc/passwd | grep $username | cut -d":" -f1)
+			if [[ "$username" != "$EXISTING" ]]; then
+				echo ""
+				echo -n "Creating user $username"
+				useradd $username
+## create password
+                        echo ""
+                        echo -n "Would you like to set a password? [Y/n] "
+                        echo ""
+			read -s -n1 mk_passwd
+                                if [[ "$mk_passwd" == "Y" ]] || [[ "$mk_passwd" == "y" ]] || [[ "$mk_passwd" == "" ]]; then
+                                        passwd $username
+                                fi
+			else
+				echo ""
+				echo -n "$username exists, adding user to chroot"
+			fi
+## passwd & group to /etc
+			PASS=$(cat /etc/passwd | grep $username)
+			echo "$PASS" >> $CHROOT_DIR/etc/passwd
+			GROUP=$(cat /etc/group | grep $username)
+			echo "$GROUP" >> $CHROOT_DIR/etc/group
+## create user home
+			mkdir -p $CHROOT_DIR/home/$username
+			chown -R $username:$username $CHROOT_DIR/home/$username
+			chmod -R 0700 $CHROOT_DIR/home/$username
+##############
+# SSH CONFIG #
+##############
+			echo ""
+			echo -n "Would you like to user to ssh to chroot? [Y/n] "
+			read -s -n1 ssh_chroot  
+			if [[ "$ssh_chroot" == "Y" ]] || [[ "$ssh_chroot" == "y" ]] || [[ "$ssh_chroot" == "" ]]; then
+			        echo "Match User $username" >> /etc/ssh/sshd_config
+        			echo "ChrootDirectory $CHROOT_DIR/home/$username" >> /etc/ssh/sshd_config
+				echo ""
+				echo "Make sure ChrootDirectory in your sshd_config has full path to chroot"
+				echo ""
+				systemctl=$(command -v systemctl)
+	                        if [[ "$systemctl" != "" ]]; then
+        				systemctl restart sshd
+				else
+					echo ""
+					echo "You will need to restart sshd"
+				fi
+			fi
+## end loop or continue
+			echo ""
+			echo -n "Would you like to create another? [y/N] "
+			echo ""
+			read -s -n1 again
+				if [[ "$again" == "N" ]] || [[ "$again" == "n" ]] || [[ "$again" == "" ]]; then
+					break
+				else
+					continue
+				fi
+		continue
+		done
+	echo ""
+	fi
+echo -n "Would you like to start chroot? [y/N] "
+echo ""
+read -s -n1 start
+if [[ "$start" == "N" ]] || [[ "$start" == "n" ]] || [[ "$start" == "" ]]; then
+	exit 0
+else
+	chroot $CHROOT_DIR
+	exit 0
+fi
