@@ -1,3 +1,4 @@
+Solved by Pondo91
 In the first image "bmo_welcome.png" we are told that there is a backdoor in https://cr0wngh0ul.org:8080.
 Using exiftool you notice a comment:  "usernames all lowercase"
 
