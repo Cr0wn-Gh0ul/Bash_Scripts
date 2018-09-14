@@ -1,0 +1,427 @@
+In the first image "bmo_welcome.png" we are told that there is a backdoor in https://cr0wngh0ul.org:8080.
+Using exiftool you notice a comment:  "usernames all lowercase"
+
+Going to "https://cr0wngh0ul.org:8080" nothing seems to be in the foreground, but giving a look to page source there are many "font tag" with binary code.
+Copying all these tags into another file without useless tags i got https://files.fm/u/cjk9qz7u
+Open it on a browser seems to be some wrong colored binary strings, but they lead nowhere!
+So I have tried to convert whole binary to text and got:
+
+**  ** ***** ***** *****    ****** **
+**  ** **    **    *   *  * **       
+**  ** ***** ***** *****    *****  ** ****** ******
+**  **    ** **    *   *  * **     ** **  ** **  **
+****** ***** ***** *    *   **     ** **  ** **  **
+
+*****    **    ***** *****   *******  *****   **  ***** *****
+**  *  **  **  **    **    * **   **  **   * ***     **    **
+***** ******** ***** *****   ******** *****   **  ***** ***** * * * * ****
+**    **    **    **    ** * **     * **      **  **       **  *   *    *
+**    **    ** ***** *****   ******** **     **** ***** ***** * *  *  ****
+
+remembering that "usernames all lowercase" I tried to ssh finn@cr0wngh0ul.org
+
+
+## Finn ------------------------------------------------------------------------------------------------------------------------
+
+ssh finn@cr0wngh0ul.org -p 4444
+password: BP123xyz
+
+here we found some usefull file:
+
+- Unlock_System_Instructions
+/bin/UNLOCK_SYSTEM
+Enter each users unlock_code
+
+really the binary found in /bin is Unl0ck_Syst3m
+file suggests us to find one unlock_code for each user
+
+- Unlock_C0de
+1b2b497c01982f2ef21bc0f810e87890d6fa4576d71f7b779d9f4b2dfe5edc4e
+
+logically this is unlock_code for Finn.
+
+- USER_DB_PASSWD
+
+This is an binary exacutable asking us for a password.
+Other files do not seem to hide anything.
+So i tried to bruteforce, really i have done some attemps before found password.
+password is "01100", if you try to crack it, be careful to include numbers starting with "0".
+entering the correct password the output is: "/bin/USER_DB password is SHA256(this_password)"
+
+$ echo -n 01100 | sha256sum
+e872e5dd519be7bb325bc6847a030a7e34ddbc0fd3b71fb41b5472146a82862a
+
+So execute USER_DB, enter e872e5dd519be7bb325bc6847a030a7e34ddbc0fd3b71fb41b5472146a82862a, got:
+Finn : BP123xyz
+Jake : RaInIc0rNxoxo
+BMO : bmoBMObM0Bm0
+Marceline : VampQu33nISme 
+LSP : 0hMyGl0b
+Lemongrab : UnAcCePtAbL3
+BananaGuard3 : password
+CinnamonBun : FlAM3princ3ss
+Peppermint :  DarkL0rd
+Rattleballs : xXwarri0rXx
+
+Now we have access to all users.
+
+
+## Jake ------------------------------------------------------------------------------------------------------------------------
+
+ssh jake@cr0wngh0ul.org -p 4444
+password: RaInIc0rNxoxo
+
+4 png and 1 mp3 files.
+Done usual controls on the PNGs with xxd and exiftool I have found nothing.
+Then xxd on mp3 nothing here too.
+Then opened mp3 file with Sonic Visualizer (1 among many) and checked spectrogram: https://files.fm/u/btxexfkz#/
+answers have to be found in season 6 episode 1 (pen-light) and season 2 episode 15 (multidimensional bubbles).
+
+So:
+echo -n "penlight_multidimensionalbubbles" | sha256sum
+caf7e13eb8de08450dc3db32069664eff76e6d740fd35649c7f6cc8bc8e04ea6 (this is jake unlock_code)
+
+I was struggling to find the answers here. Thanks "jed" for help :)
+
+
+## BMO ------------------------------------------------------------------------------------------------------------------------
+
+ssh bmo@cr0wngh0ul.org -p 4444
+password:bmoBMObM0Bm0
+
+Investigating with xxd i realized that System.png is non a PNG but bash script (look at #!/bin/bash).
+So simply execute it:
+$ ./System.png
+
+It outputs:
+Loading Unlock System Code... ERROR!
+Unlock_System_Code: File Corrupted!!
+Would you like to view the file? [Y/n]
+
+click enter you get hex value mixed with uppercase letters stuf like "0x23I0x21C0x2fE0x62K0x69I0x6eN0x2fG0x62"
+uppercase letter (ICEKING) leads to nothing so I tried removing everithing except hex value (removed 0x ans space too) and converted it with "xxd -p -r".
+I got another bash script.
+excuted it I got rubbish https://files.fm/u/fka96dee (look at system1.png).
+
+Investigating with xxd i realized thet bash should print 0xe29684 that in utf8 is half lower block, but bash is printing 0x2e (that is â) in iso-8859-1.
+
+solved setting bash to print out in utf8 with command:
+$ printf '\033%%G'
+
+reexcuting bash I got: https://files.fm/u/fka96dee (system2.png).
+
+so unlock_code is aff98962cce44dc55b46486f00f75b371f514b3a3c727b155963a4dc9e070180
+
+
+## Marceline ------------------------------------------------------------------------------------------------------------------------
+
+there is a PNG with a written down "Block Size II" (He does not tell me anything for now)
+there are 3 mp3s, first one have 22hex string in stectrogram, last 2 are really data file with 1 hex value for line.
+Analyzing those value I notice there are 256 different value from 0x0 to 0x4bf, so I thought that each hex value was mapped to a byte value and that they was really mp3 files. 
+I noticed that first 80 are the same in the 2 mp3 files, so I thought I could get some mapping value.
+I get about 40 mapping values overall that isn't enought, the mapping must be found somewhere else.
+Maybe the mapping can be found in the PNG file with that "Block Size II" written.
+mp3 file starts with 0x490x440x33 ("ID3", ID3 header frame) Using xxd I noticed that 0x49 is after 24 hex character, 0x44 is after 28 hex character,
+and first 2 values in Im_Just_Your_Problem.mp3 and Remember_You.mp3 are 0x18(=24) and 0x1c(=28).
+So every value in those 2 mp3s is the offset from the 2 hex character to replace to.
+
+Maybe best way is convert PNG to hex file with xxd then make a script that for every line do something like:
+$ dd if=Im_Just_Your_Problem.mp3 of=Im_Just_Your_Problem_hex bs=1 count=2 skip="line hex value converted to decimal"
+
+I have done it with c++ in the same way.
+
+Created the real 2 mp3s look at spectrogram.
+I had to flank the 3 spectrograms: https://files.fm/u/vz8ar62c
+
+unlock_code: 81a057e4f6c23d91b32cecd81adfd3d580f145f98101f969083fc53bfb4dc655
+
+
+## LSP ------------------------------------------------------------------------------------------------------------------------
+
+Only file which seems to hide something is "bad.png"
+If you open it you will see a 1x1 pixel image.
+png is a simple format and I had already studied it quite well.
+
+I had immediately understood that IHDR Image header was corrupted. (look here http://www.libpng.org/pub/png/spec/1.2/PNG-Chunks.html)
+
+                           lenght   "IHDR"   data                       crc32
+Using xxd we can see IHDR: 0000000d 49484452 00000001000000010806000000 aee87101
+   Width:       0000 0001 -> need to fix
+   Height:      0000 0001 -> need to fix
+   Bit depth:          08 -> 8 bit per color
+   Color type:         06 -> Each pixel is an R,G,B triple, followed by an alpha sample. (So 4 byte per pixel, we need it later)
+   Compression method: 00 -> deflate/inflate compression
+   Filter method:      00
+   Interlace method:   00
+
+One idea was to brute force those 2 value but to many combination and we have to calculate CRC32 too (after every chunk)
+
+So my idea was to find size of all idat chunk decompressed.
+1) Extract all data from IDAT chunk and save all them in a new file "compressed_idat".
+I wrote a c++ code for that.
+
+2) Decompress "compressed_idat" in "idat":
+one way is: (found googling)
+$ zlipd() (printf "\x1f\x8b\x08\x00\x00\x00\x00\x00" | cat - $@ | gzip -dc)
+$ zlipd  compressed_idat idat
+size of idat is 2600650 byte.
+
+3) every horizontal pixel line is (4byte * numeber of horizontal pixel) + 1byte (filtered metod). just for clarity filtered method does not compress data so 1 pixel remains 4 bytes
+size = 2600650 = (4*X + 1) * Y, where X Y are image pixel size.
+2600650 = 4*X*Y + Y
+we need to find all possible integer value X, Y and try them all, but that trailing 650 draw my attention. maybe 650 byte filtered method? and so Y=650? give a try before
+
+if Y=650 then X=(2600650-Y)/(4*Y) = 1000
+image size 1000x650 seems to be the right size.
+
+3e8(=1000) and 28a(=650)
+IHDR data should be "0000 03e8 0000 028a 0806 0000 00" but we need to replace crc32 too
+
+what I have done is googling "png 1000x650" download any png image 1000x650, be sure Bit depth: 08  Color type: 06 and replaced whole IHDR
+
+open fixed image and keep unlock_code:
+6543c815c8a340153b53dc839e4f5d1b8554906181ed5339f5e933ff4c6a06ff
+
+
+## Lemongrab ------------------------------------------------------------------------------------------------------------------------
+
+all you can find here is a binary code at the end of Thought.gif
+Analyzing this code you will notice some very recurring path.
+So i have tried first to convert to iso-8859-1 but no luck.
+Then converted to hex, i have noticed that there are recurring hex trio.
+But trio hex digit is a double base64 digit and a poker base8 digit.
+base64 and above all base8 you will see better recurring pattern.
+base8 digit 3,7 appear only in 372 sequence, here i was thinking about esoteric programming languages but I found nothing.
+
+I solved it only after hint 1 was released ("hint 1: fuck").
+Looked better at esoteric programming languages with "fuck" name and found Binaryfuck. 
+(https://www.dcode.fr/binaryfuck-language)
+Excuted binary code in that web page and got:
+
+unlock_system_code: 0803ea5ffb5829406e40f487d7c1f93787bf0a77a8fb6dac13009730f7795068
+
+
+## BananaGuard3 ------------------------------------------------------------------------------------------------------------------------
+
+All I have found here is this at the end of BFF.png:
+31454636424432413641383932314242433930364246343642423335334336364233443836354643433133343035423441433443323632364332383543354638
+
+It seems decimal number but I can do nothing.
+Then I have noticed 128byte lenght, double of unlock_code lenght. So try:
+$ echo -n 31454636424432413641383932314242433930364246343642423335334336364233443836354643433133343035423441433443323632364332383543354638 | xxd -p -r 
+1EF6BD2A6A8921BBC906BF46BB353C66B3D865FCC13405B4AC4C2626C285C5F8
+
+is it possible that this is the code? I have tried it at last steps of puzzle and worked so yes:
+
+unlock_code: 1EF6BD2A6A8921BBC906BF46BB353C66B3D865FCC13405B4AC4C2626C285C5F8
+
+
+## CinnamonBun  ------------------------------------------------------------------------------------------------------------------------
+
+there is a plane text at the end of the only file here:
+/****************************************************
+Planet Orbital Velocity = 29.783
+Orbit Height = 0
+Planet Mass = 1
+Gravitational Constant = 6.6740831
+Planet Radius = ? (No Decimal)
+Satellite Cirular Orbital Velocity = X ( 5 Decimal )
+Escape Velocity = Z ( 5 Decimal )
+
+X= 24.46350; A= SHA256(Z)
+X= 21.60363; B= SHA256(Z)
+X= 17.81398; C= SHA256(Z)
+X= 15.78322; D= SHA256(Z)
+X= 11.16042; E= SHA256(Z)
+X= 7.87196;  F= SHA256(Z)
+
+Unlock_System_Code: SHA256(((((A^B)^C)^D)^E)^F)
+/****************************************************
+
+many data are useless, after googling a bit I found: Z = sqrt(X) so writing for now 7 decimal digits Z values are:
+34.5966135
+30.5521465
+25.1927721
+22.3208438
+15.7832173
+11.1326326
+
+truncating 5 digits
+34.59661
+30.55214
+25.19277
+22.32084
+15.78321
+11.13263
+
+rounding 5 digits
+34.59661
+30.55215
+25.19277
+22.32084
+15.78322
+11.13263
+
+neither of them gave me the correct code!
+it turned out that based on the tool used, there were approximation errors of 0.00001
+this one works well: https://planetcalc.com/6729/
+
+But i had yet writen a bash script that read 6 value from file and return the Unlock_System_Code.
+All possible combination were 2^6=64 but i guessed the right solution in 4-5 attemps changing only value closer to 0.000005 
+
+right Z are so:
+34.59661
+30.55215
+25.19277
+22.32085
+15.78322
+11.13263
+
+unlock_code: a9d69108e11072bbec6c755abf17119af587ce681ebdc2cba6b392bd4b324307
+
+note:
+Look at "Unl0ck_Syst3m" section selow to know how I was checking if unlock_code was right.
+
+
+## Peppermint -------------------------------------------------------------------------------------------------------------
+
+At the end of these 3 file (dark.gif notes.gif old.png) I have founded:
+
+dark.gif:
+-----END PUBLIC KEY-----
+N3IXAcPvNAB7VUPaDtGVviIiHMOEJmQbAgMBAAE=
+
+notes.gif:
+MIGqMA0GCSqGSIb3DQEBAQUAA4GYADCBlAKBjAQvN7gPki5dFt3HlCAjOkDF3+KG
+-----BEGIN PUBLIC KEY-----
+
+old.png:
+EP1jYmAHg9MKf37jOJ3bob2P6foKCez50LamD86OQUQkgIxPsDRgl9MVZyFWOdWK
+PDo9TgxNQU2Mfe3aIFirJ2OMp807eHmA11ad4twoO/vPDS2ArUw7s5ITGGwSAoAT
+
+they look like the parts of a PEM format public key.
+moreover the lines seem inverted:
+"-----END PUBLIC KEY-----" should be last line
+"-----BEGIN PUBLIC KEY-----" should be first line
+so I inverted lines in all 3 chunk before join together:
+
+pub.pem:
+-----BEGIN PUBLIC KEY-----
+MIGqMA0GCSqGSIb3DQEBAQUAA4GYADCBlAKBjAQvN7gPki5dFt3HlCAjOkDF3+KG
+PDo9TgxNQU2Mfe3aIFirJ2OMp807eHmA11ad4twoO/vPDS2ArUw7s5ITGGwSAoAT
+EP1jYmAHg9MKf37jOJ3bob2P6foKCez50LamD86OQUQkgIxPsDRgl9MVZyFWOdWK
+N3IXAcPvNAB7VUPaDtGVviIiHMOEJmQbAgMBAAE=
+-----END PUBLIC KEY-----
+
+What can I do with that pub key?!
+
+besides the 3 gif/png there is also a 140byte sized file "Unl0ck_C0de"
+converting it to hex or base64 seems rubbish.
+For sure is the unlock_code, maybe encrypted with pub.pem?
+
+$ openssl rsa -in pub.pem -pubin -text -noout
+Public-Key: (1115 bit)
+1115/8 = 139.375 -> every file encrypted with this pub key is 140 byte long.
+
+So Unl0ck_C0de is sure the unlock_code encrypted with pub.pem
+
+So I need private key for decrypt it but no trace of a private key. 
+If I must crack it from the public key sure this is a weak rsa key.
+Wiener's attack works on little private exponent but I have extracted public exponent from pub.pem and e=0x10001 so private exponent can not be so little
+
+Next attemp I've done is to try to factorize modulus (n = p*q, where p,q should be big prime number)
+This operation would be practically impossible if p and q were chosen suitably large.
+But this has been a weak key as expected.
+
+extracting modulus from pub.pem:
+n=042F37B80F922E5D16DDC79420233A40C5DFE2863C3A3D4E0C4D414D8C7DEDDA2058AB27638CA7CD3B787980D7569DE2DC283BFBCF0D2D80AD4C3BB39213186C1202801310FD6362600783D30A7F7EE3389DDBA1BD8FE9FA0A09ECF9D0B6A60FCE8E414424808C4FB0346097D31567215639D58A37721701C3EF34007B5543DA0ED195BE22221CC38426641B
+converted to decimal:
+n=232805337824709187758567614345164369640905196906161190117399914999084869280501377034146427509821310414018646093699105528219624749717431457106237039734270204290594088884317268823351960048222904591377231999511261693392492917096983385403575193640490238594096249866899523020243255292818672149033458690078581352942476216908273781672014930971
+
+try paste this number on https://www.alpertron.com.ar/ECM.HTM to factorize it.
+In less than 1 second solved it:
+n = p x q = 99999989 x 2328053634332991654214758107075035474662954181986571919696910316650983524413201455793624412396898467799017918828962126468030158980491802425160637165012790194312862263258021646615900728231309151357778969350799245521841936573582856948150016232906688005676643123099738771173697382034898745329196573112408855894398910552962898642639
+p = 99999989 very little prime number for a safe rsa key, this choose was intentional otherwise it would not have been possible to crack the rsa key
+
+Now we have p, q enough to crete private key.
+
+To easily create private key pem file I dowloaded https://github.com/ius/rsatool
+$ ./rsatool.py -o priv.pem -p 99999989 -q 2328053634332991654214758107075035474662954181986571919696910316650983524413201455793624412396898467799017918828962126468030158980491802425160637165012790194312862263258021646615900728231309151357778969350799245521841936573582856948150016232906688005676643123099738771173697382034898745329196573112408855894398910552962898642639
+
+all that remains is to decrypt Unl0ck_C0de:
+$ openssl rsautl -decrypt -inkey priv.pem -in Unl0ck_C0de
+0c887332e8a035288e325c22c184a62a6115f60a1fe480501089db62d1fb0b11
+
+
+## Rattleballs ----------------------------------------------------------------------------------------------------------------
+
+4 PNGs here 3 of those useless.
+At the end of Master.png there is an ELF file:
+00053ca0: 7f45 4c46 0201 0100 0000 0000 0000 0000  .ELF............
+
+extract it from PNG:
+$ dd if=Master.png of=Master bs=1 skip=343200
+execute it and get:
+global mainglobal __x86.get_pc_thunk.axextern putsextern _GLOBAL_OFFSET_TABLE_SECTION .text   main:        lea     ecx, [esp+4H]        and     esp, 0FFFFFFF0H        push    dword [ecx-4H]        push    ebp        mov     ebp, esp        push    ebx        push    ecx        call    __x86.get_pc_thunk.ax        add     eax, _GLOBAL_OFFSET_TABLE_-$        sub     esp, 12        lea     edx, [L_001+eax]        push    edx        mov     ebx, eax        call    puts        add     esp, 16        mov     eax, 0        lea     esp, [ebp-8H]        pop     ecx        pop     ebx        pop     ebp        lea     esp, [ecx-4H]        retSECTION .data   SECTION .bss    SECTION .rodata align=4SECTION .text.__x86.get_pc_thunk.ax __x86.get_pc_thunk.ax:        mov     eax, dword [esp]        ret TQ
+
+that is a assembly code, copy it to new file "assembly.S" and fix missing "newline"
+
+trying to compile with nasm:
+$ nasm -f elf64 d.S
+d.S:10: error: instruction not supported in 64-bit mode
+
+uhm so:
+nasm -f elf32 d.S
+d.S:18: error: symbol `L_001' undefined
+
+I have yet saw L_001 in the Master.png, so I thought to check the executable Master:
+$ objdump -s Master
+in the section .rodata there is L_001 copy it an paste to assembly code which definitive version is: https://files.fm/u/wvswmz85
+
+compile again:
+nasm -f elf32 assembly.S
+All fine now
+
+Then link it:
+$ gcc -m32 assembly.o -o assembly
+many error here I have to install multilib, my sistem is only 64bit.
+
+I guessed that the binary would print the contents of L_001 so I did it manually:
+33303930356164366633383665316564386335663635336635386263326236346364303666643562623062306263383736356237376235386334373734643838
+then:
+$ echo -n 33303930356164366633383665316564386335663635336635386263326236346364303666643562623062306263383736356237376235386334373734643838 | xxd -p-r
+30905ad6f386e1ed8c5f653f58bc2b64cd06fd5bb0b0bc8765b77b58c4774d88
+that is the unlock_code
+
+if you want, try to compile yourself the 32bit code
+
+
+## /bin/Unl0ck_Syst3m ----------------------------------------------------------------------------------------------------------------
+
+excute it and paste all founded unlock_code.
+You get "unlock_key" file of size 3358 bytes.
+Maybe you all, time before this step, have noticed file /usr/share/bubblegum_key that is 3359 byte (really 3358 byte + 1byte newline)
+So the unlock_key maybe is one-time pad to decrypt bubblegum_key (you have xor them to get plain text) 
+
+What i got is a private rsa key with some rubbish in the middle, so 1-2 unlock_code was wrong.
+Spending some time on unlock_key I realized that every unlock_code generated about 348bytes of unlock_key file (output generated by the last unlock_code was truncated, so less bytes)
+So I realized Jake and CinnamonBun unlock_code was wrong.
+First I have fixed Jake, than CinnamonBun doing those attempts I mentioned earlier until all the rubbish content has disappeared.
+
+
+## Bubblegum ----------------------------------------------------------------------------------------------------------------
+
+What to do with that private rsa key?
+With a private key you can sign a file, decrypt file encrypted with public key and, it came to my mind a little after, log in to ssh host.
+
+$ ssh -i rsa.pem bubblegum@cr0wngh0ul.org -p 4444
+
+There is a PNG, at the end there is a keystore file.
+
+And there is a file with written:
+The password is CandyKingdom
+
+
+I used myetherwallet to access wallet with that keystore and password
+
+
