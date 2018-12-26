@@ -1,0 +1,249 @@
+#!/bin/bash
+#Made by: Cr0wn_Gh0ul
+#REQUIRED: ImageMagick 7.0.8-14 | keccak-256sum | bc | coreutils
+#USAGE: ./ENCODE_SNOWFLAKE
+#
+#Create tmp folder
+if [ ! -d "./tmp" ]; then
+	mkdir ./tmp
+fi
+export RANDFILE=./tmp/.rnd
+
+#Create ETH pub/priv key pair
+while true; do
+keys=$(openssl ecparam -name secp256k1 -genkey -noout | openssl ec -text -noout 2> /dev/null)
+priv=$(printf "%s\n" $keys | grep priv -A 3 | tail -n +2 | tr -d '\n[:space:]:' | sed 's/^00//')
+if [ ${#priv} -ne 64 ]; then
+        continue
+else
+        break
+fi
+done
+pub=$(printf "%s\n" $keys | grep pub -A 5 | tail -n +2 | tr -d '\n[:space:]:' | sed 's/^04//')
+addr=0x$(echo $pub | keccak-256sum -x -l | tr -d ' -' | tail -c 41)
+
+#XOR Private Key with Password
+pass=$(openssl rand -base64 32 | tr -dc A-Z-a-z-0-9)
+PRIVATE_KEY="$priv"
+PASSWORD=$(echo -n $pass | sha256sum | cut -d" " -f1)
+COUNT=1
+BYTE=2
+XOR=$(while [[ $COUNT -lt 33 ]]; do
+                K=$(echo $PRIVATE_KEY | head -c$BYTE | tail -c2)
+                Y=$(echo $PASSWORD | head -c$BYTE | tail -c2)
+                X=$(printf "%02x" $((16#$Y^16#$K)))
+                let COUNT=COUNT+1
+                let BYTE=BYTE+2
+                echo "$X"
+                done)
+
+#Image Settings: Width, Height, Border Padding, Segment Size
+#Segment Thickness, Branch Thickness
+W=500
+H=500
+PAD=10
+SEG=$(expr $H / 2)
+ST=4
+BT=2
+
+#Byte Variables For Branches
+HASH=$(echo "$XOR" | xargs | sed 's/ //g')
+B1=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c2 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B2=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c4 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B3=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c6 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B4=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c8 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B5=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c10 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B6=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c12 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B7=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c14 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B8=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c16 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B9=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c18 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B10=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c20 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B11=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c22 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B12=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c24 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B13=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c26 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B14=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c28 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B15=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c30 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B16=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c32 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B17=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c34 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B18=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c36 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B19=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c38 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B20=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c40 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B21=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c42 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B22=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c44 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B23=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c46 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B24=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c48 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B25=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c50 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B26=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c52 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B27=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c54 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B28=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c56 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B29=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c58 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B30=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c60 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B31=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c62 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+B32=$(printf "%.0f" $(bc <<< "scale = 3; (($((16#$(echo $HASH | head -c64 | tail -c2))) / 1000 ) * $SEG)") | cut -d"." -f1)
+
+#Segment - Branch Placement
+S1=$(echo "$SEG * .85" | bc | cut -d"." -f1)
+S2=$(echo "$SEG * .80" | bc | cut -d"." -f1)
+S3=$(echo "$SEG * .75" | bc | cut -d"." -f1)
+S4=$(echo "$SEG * .70" | bc | cut -d"." -f1)
+S5=$(echo "$SEG * .65" | bc | cut -d"." -f1)
+S6=$(echo "$SEG * .60" | bc | cut -d"." -f1)
+S7=$(echo "$SEG * .55" | bc | cut -d"." -f1)
+S8=$(echo "$SEG * .50" | bc | cut -d"." -f1)
+S9=$(echo "$SEG * .45" | bc | cut -d"." -f1)
+S10=$(echo "$SEG * .425" | bc | cut -d"." -f1)
+S11=$(echo "$SEG * .40" | bc | cut -d"." -f1)
+S12=$(echo "$SEG * .375" | bc | cut -d"." -f1)
+S13=$(echo "$SEG * .35" | bc | cut -d"." -f1)
+S14=$(echo "$SEG * .325" | bc | cut -d"." -f1)
+S15=$(echo "$SEG * .30" | bc | cut -d"." -f1)
+S16=$(echo "$SEG * .275" | bc | cut -d"." -f1)
+
+#Byte Variables for addr
+AD=$(echo "$addr" | cut -d"x" -f2)
+A1=$((16#$(echo $AD | head -c2 | tail -c2)))
+A2=$((16#$(echo $AD | head -c4 | tail -c2)))
+A3=$((16#$(echo $AD | head -c6 | tail -c2)))
+A4=$((16#$(echo $AD | head -c8 | tail -c2)))
+A5=$((16#$(echo $AD | head -c10 | tail -c2)))
+A6=$((16#$(echo $AD | head -c12 | tail -c2)))
+A7=$((16#$(echo $AD | head -c14 | tail -c2)))
+A8=$((16#$(echo $AD | head -c16 | tail -c2)))
+A9=$((16#$(echo $AD | head -c18 | tail -c2)))
+A10=$((16#$(echo $AD | head -c20 | tail -c2)))
+A11=$((16#$(echo $AD | head -c22 | tail -c2)))
+A12=$((16#$(echo $AD | head -c24 | tail -c2)))
+A13=$((16#$(echo $AD | head -c26 | tail -c2)))
+A14=$((16#$(echo $AD | head -c28 | tail -c2)))
+A15=$((16#$(echo $AD | head -c30 | tail -c2)))
+A16=$((16#$(echo $AD | head -c32 | tail -c2)))
+A17=$((16#$(echo $AD | head -c34 | tail -c2)))
+A18=$((16#$(echo $AD | head -c36 | tail -c2)))
+A19=$((16#$(echo $AD | head -c38 | tail -c2)))
+A20=$((16#$(echo $AD | head -c40 | tail -c2)))
+
+#Colors
+S_COLOR="#009cb7"
+BLUE=255
+RG1=$((16#$(echo $HASH | head -c2 | tail -c2)))
+RG2=$((16#$(echo $HASH | head -c4 | tail -c2)))
+RG3=$((16#$(echo $HASH | head -c6 | tail -c2)))
+RG4=$((16#$(echo $HASH | head -c8 | tail -c2)))
+RG5=$((16#$(echo $HASH | head -c10 | tail -c2)))
+RG6=$((16#$(echo $HASH | head -c12 | tail -c2)))
+RG7=$((16#$(echo $HASH | head -c14 | tail -c2)))
+RG8=$((16#$(echo $HASH | head -c16 | tail -c2)))
+RG9=$((16#$(echo $HASH | head -c18 | tail -c2)))
+RG10=$((16#$(echo $HASH | head -c20 | tail -c2)))
+RG11=$((16#$(echo $HASH | head -c22 | tail -c2)))
+RG12=$((16#$(echo $HASH | head -c24 | tail -c2)))
+RG13=$((16#$(echo $HASH | head -c26 | tail -c2)))
+RG14=$((16#$(echo $HASH | head -c28 | tail -c2)))
+RG15=$((16#$(echo $HASH | head -c30 | tail -c2)))
+RG16=$((16#$(echo $HASH | head -c32 | tail -c2)))
+RG17=$((16#$(echo $HASH | head -c34 | tail -c2)))
+RG18=$((16#$(echo $HASH | head -c36 | tail -c2)))
+RG19=$((16#$(echo $HASH | head -c38 | tail -c2)))
+RG20=$((16#$(echo $HASH | head -c40 | tail -c2)))
+RG21=$((16#$(echo $HASH | head -c42 | tail -c2)))
+RG22=$((16#$(echo $HASH | head -c44 | tail -c2)))
+RG23=$((16#$(echo $HASH | head -c46 | tail -c2)))
+RG24=$((16#$(echo $HASH | head -c48 | tail -c2)))
+RG25=$((16#$(echo $HASH | head -c50 | tail -c2)))
+RG26=$((16#$(echo $HASH | head -c52 | tail -c2)))
+RG27=$((16#$(echo $HASH | head -c54 | tail -c2)))
+RG28=$((16#$(echo $HASH | head -c56 | tail -c2)))
+RG29=$((16#$(echo $HASH | head -c58 | tail -c2)))
+RG30=$((16#$(echo $HASH | head -c60 | tail -c2)))
+RG31=$((16#$(echo $HASH | head -c62 | tail -c2)))
+RG32=$((16#$(echo $HASH | head -c64 | tail -c2))) 
+
+#Create main image
+$(convert -size "$W"x"$H" xc:none -fill "$S_COLOR" -stroke "$S_COLOR" -strokewidth "$ST" +antialias -draw "line $SEG,$SEG $SEG,$PAD" \
+-stroke "rgb($RG1,$RG2,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S1 $(expr $SEG + $B1),$(expr $S1 + $B2)" \
+-stroke "rgb($RG1,$RG2,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S1 $(expr $SEG - $B1),$(expr $S1 + $B2)" \
+-stroke "rgb($RG3,$RG4,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S2 $(expr $SEG + $B3),$(expr $S2 - $B4)" \
+-stroke "rgb($RG3,$RG4,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S2 $(expr $SEG - $B3),$(expr $S2 - $B4)" \
+-stroke "rgb($RG5,$RG6,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S3 $(expr $SEG + $B5),$(expr $S3 + $B6)" \
+-stroke "rgb($RG5,$RG6,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S3 $(expr $SEG - $B5),$(expr $S3 + $B6)" \
+-stroke "rgb($RG7,$RG8,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S4 $(expr $SEG + $B7),$(expr $S4 - $B8)" \
+-stroke "rgb($RG7,$RG8,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S4 $(expr $SEG - $B7),$(expr $S4 - $B8)" \
+-stroke "rgb($RG9,$RG10,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S5 $(expr $SEG + $B9),$(expr $S5 + $B10)" \
+-stroke "rgb($RG9,$RG10,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S5 $(expr $SEG - $B9),$(expr $S5 + $B10)" \
+-stroke "rgb($RG11,$RG12,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S6 $(expr $SEG + $B11),$(expr $S6 - $B12)" \
+-stroke "rgb($RG11,$RG12,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S6 $(expr $SEG - $B11),$(expr $S6 - $B12)" \
+-stroke "rgb($RG13,$RG14,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S7 $(expr $SEG + $B13),$(expr $S7 + $B14)" \
+-stroke "rgb($RG13,$RG14,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S7 $(expr $SEG - $B13),$(expr $S7 + $B14)" \
+-stroke "rgb($RG15,$RG16,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S8 $(expr $SEG + $B15),$(expr $S8 - $B16)" \
+-stroke "rgb($RG15,$RG16,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S8 $(expr $SEG - $B15),$(expr $S8 - $B16)" \
+-stroke "rgb($RG17,$RG18,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S9 $(expr $SEG + $B17),$(expr $S9 + $B18)" \
+-stroke "rgb($RG17,$RG18,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S9 $(expr $SEG - $B17),$(expr $S9 + $B18)" \
+-stroke "rgb($RG19,$RG20,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S10 $(expr $SEG + $B19),$(expr $S10 - $B20)" \
+-stroke "rgb($RG19,$RG20,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S10 $(expr $SEG - $B19),$(expr $S10 - $B20)" \
+-stroke "rgb($RG21,$RG22,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S11 $(expr $SEG + $B21),$(expr $S11 + $B22)" \
+-stroke "rgb($RG21,$RG22,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S11 $(expr $SEG - $B21),$(expr $S11 + $B22)" \
+-stroke "rgb($RG23,$RG24,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S12 $(expr $SEG + $B23),$(expr $S12 - $B24)" \
+-stroke "rgb($RG23,$RG24,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S12 $(expr $SEG - $B23),$(expr $S12 - $B24)" \
+-stroke "rgb($RG25,$RG26,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S13 $(expr $SEG + $B25),$(expr $S13 + $B26)" \
+-stroke "rgb($RG25,$RG26,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S13 $(expr $SEG - $B25),$(expr $S13 + $B26)" \
+-stroke "rgb($RG27,$RG28,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S14 $(expr $SEG + $B27),$(expr $S14 - $B28)" \
+-stroke "rgb($RG27,$RG28,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S14 $(expr $SEG - $B27),$(expr $S14 - $B28)" \
+-stroke "rgb($RG29,$RG30,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S15 $(expr $SEG + $B29),$(expr $S15 + $B30)" \
+-stroke "rgb($RG29,$RG30,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S15 $(expr $SEG - $B29),$(expr $S15 + $B30)" \
+-stroke "rgb($RG31,$RG32,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S16 $(expr $SEG + $B31),$(expr $S16 - $B32)" \
+-stroke "rgb($RG31,$RG32,$BLUE)" -strokewidth "$BT" -draw "line $SEG,$S16 $(expr $SEG - $B31),$(expr $S16 - $B32)" \
+-fill "rgb($RG1,$RG2,$BLUE)" -draw "point $SEG,$S1" \
+-fill "rgb($RG3,$RG4,$BLUE)" -draw "point $SEG,$S2" \
+-fill "rgb($RG5,$RG6,$BLUE)" -draw "point $SEG,$S3" \
+-fill "rgb($RG7,$RG8,$BLUE)" -draw "point $SEG,$S4" \
+-fill "rgb($RG9,$RG10,$BLUE)" -draw "point $SEG,$S5" \
+-fill "rgb($RG11,$RG12,$BLUE)" -draw "point $SEG,$S6" \
+-fill "rgb($RG13,$RG14,$BLUE)" -draw "point $SEG,$S7" \
+-fill "rgb($RG15,$RG16,$BLUE)" -draw "point $SEG,$S8" \
+-fill "rgb($RG17,$RG18,$BLUE)" -draw "point $SEG,$S9" \
+-fill "rgb($RG19,$RG20,$BLUE)" -draw "point $SEG,$S10" \
+-fill "rgb($RG21,$RG22,$BLUE)" -draw "point $SEG,$S11" \
+-fill "rgb($RG23,$RG24,$BLUE)" -draw "point $SEG,$S12" \
+-fill "rgb($RG25,$RG26,$BLUE)" -draw "point $SEG,$S13" \
+-fill "rgb($RG27,$RG28,$BLUE)" -draw "point $SEG,$S14" \
+-fill "rgb($RG29,$RG30,$BLUE)" -draw "point $SEG,$S15" \
+-fill "rgb($RG31,$RG32,$BLUE)" -draw "point $SEG,$S16" \
+-fill "rgb($A1,$A2,$BLUE)" -draw "point $SEG,$(expr $PAD + 1)" \
+-fill "rgb($A3,$A4,$BLUE)" -draw "point $SEG,$(expr $PAD + 2)" \
+-fill "rgb($A5,$A6,$BLUE)" -draw "point $SEG,$(expr $PAD + 3)" \
+-fill "rgb($A7,$A8,$BLUE)" -draw "point $SEG,$(expr $PAD + 4)" \
+-fill "rgb($A9,$A10,$BLUE)" -draw "point $SEG,$(expr $PAD + 5)" \
+-fill "rgb($A11,$A12,$BLUE)" -draw "point $SEG,$(expr $PAD + 6)" \
+-fill "rgb($A13,$A14,$BLUE)" -draw "point $SEG,$(expr $PAD + 7)" \
+-fill "rgb($A15,$A16,$BLUE)" -draw "point $SEG,$(expr $PAD + 8)" \
+-fill "rgb($A17,$A18,$BLUE)" -draw "point $SEG,$(expr $PAD + 9)" \
+-fill "rgb($A19,$A20,$BLUE)" -draw "point $SEG,$(expr $PAD + 10)" \
+./tmp/$pass-top.png)
+
+#Create segments
+$(convert -background none -flip ./tmp/$pass-top.png ./tmp/$pass-bottom.png)
+$(composite -gravity center ./tmp/$pass-top.png ./tmp/$pass-bottom.png ./tmp/$pass-vert.png)
+$(convert -background none -rotate "60" ./tmp/$pass-vert.png ./tmp/$pass-60_1.png)
+$(convert -background none -rotate "-60" ./tmp/$pass-vert.png ./tmp/$pass-60_2.png)
+#Combine segments
+$(composite -gravity center ./tmp/$pass-60_1.png ./tmp/$pass-60_2.png ./tmp/$pass-hor.png)
+$(composite -gravity center ./tmp/$pass-vert.png ./tmp/$pass-hor.png ./tmp/$pass-complete.png)
+#Main Snowflake
+$(convert -crop "$W"x"$H"+0+0 ./tmp/$pass-complete.png ./tmp/$pass-snowflake.png)
+$(convert -background none ./tmp/$pass-snowflake.png +clone -evaluate multiply .5 -blur 1x1 +clone -blur 0x8 -level 0%,50% -bordercolor none -border 0x0 -compose screen -composite ./tmp/$pass-pre.png)
+$(composite -gravity center ./tmp/$pass-snowflake.png ./tmp/$pass-pre.png ./tmp/$pass-post.png && convert ./tmp/$pass-post.png -transparent black -gravity center -crop "$W"x"$H"+0+0 ./tmp/$pass-snowflake.png)
+
+#Output to {unix-timstamp}-snowflake and keep a copy
+#mv ./tmp/$pass-snowflake.png ./$(date +%s)-snowflake.png
+
+#HTML output
+echo "<img id='flake' width='250px' src='data:image/png;base64,$(base64 -w 0 ./tmp/$pass-snowflake.png)'</img>"
+echo "<div id='info'>"
+echo "<pre style='color: green'>Address: $addr</pre>"
+echo "<pre style='color: red'>Private Key: $priv</pre>"
+echo "<pre style='color: green'>Xor Hash: $PASSWORD</pre>"
+echo "<pre style='color: red'>Encrypted Private Key: $HASH</pre>"
+echo "</div>"
+
+#Cleanup/Remove snowflake & tmp data
+rm ./tmp/$pass-*
